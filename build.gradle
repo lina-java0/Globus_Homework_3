@@ -1,0 +1,54 @@
+plugins {
+    id 'java'
+}
+
+group = 'org.example'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// Определяем расположение выходного файла
+def buildInfoFile = layout.buildDirectory.file("build-info.txt")
+
+// Создаем задачу через register (ленивая загрузка)
+tasks.register("generateBuildInfo") {
+    // Объявляем выходной файл задачи
+    outputs.file(buildInfoFile)
+    // Задача будет выполняться при каждой сборке
+    outputs.upToDateWhen { false }
+
+    // Что выполняет задача
+    doLast {
+        // Получаем файл из Provider
+        def file = buildInfoFile.get().asFile
+        // Создаем родительскую директорию файла, если она отсутствует
+        file.parentFile.mkdirs()
+
+        // Время сборки
+        def buildDateTime = new Date().format('yyyy-MM-dd HH:mm:ss')
+
+        // Запись информацию в файл
+        file.text = """Project: ${project.name}
+Version: ${project.version}
+Build date: ${buildDateTime}"""
+    }
+}
+
+// Гарантия, что задача выполнится: добавляем зависимость build от generateBuildInfo
+tasks.named('build') {
+    dependsOn('generateBuildInfo')
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+}
